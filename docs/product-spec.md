@@ -22,9 +22,11 @@ OpsWatch should detect:
 
 - zone creation when the intent is record creation
 - protected domain mutation
+- high-risk DNS zone creation even when no intent is known
 - production account or environment mismatch
 - destructive terminal commands
 - broad selectors like `--all`
+- identity/access changes, network edge changes, data mutations, and infra apply/deploy actions
 
 ## User Experience
 
@@ -66,4 +68,3 @@ The current repo starts at the analyzer boundary, with JSONL events standing in 
 - policy should explain why the action is risky
 - raw video should be ephemeral by default
 - stored artifacts should prefer structured events and alert summaries
-

@@ -6,5 +6,6 @@ func DefaultPolicies() []domain.Policy {
 	return []domain.Policy{
 		DNSPolicy{},
 		TerminalPolicy{},
+		HighRiskPolicy{},
 	}
 }

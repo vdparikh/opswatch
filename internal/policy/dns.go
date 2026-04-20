@@ -70,6 +70,25 @@ func (DNSPolicy) Evaluate(event domain.Event, state domain.IncidentState) []doma
 		})
 	}
 
+	if len(alerts) == 0 {
+		alerts = append(alerts, domain.Alert{
+			Timestamp:   event.Timestamp,
+			Severity:    domain.SeverityWarning,
+			Title:       "DNS zone creation observed",
+			Explanation: "Observed creation of a DNS zone. This can be high blast radius and may deserve human verification during an incident.",
+			Evidence: []string{
+				"observed: " + event.Text,
+			},
+			Source:     event.Source,
+			Confidence: 0.72,
+			Labels: map[string]string{
+				"category":      "dns_zone_creation",
+				"resource_type": "dns_zone",
+				"domain":        domainName,
+			},
+		})
+	}
+
 	return alerts
 }
 

@@ -46,12 +46,31 @@ Expected output includes a critical alert when a hosted zone creation is observe
 
 ## Analyze A Screenshot
 
-Set an OpenAI API key, then pass a screenshot into the same analyzer pipeline:
+Pass a screenshot into the same analyzer pipeline. For local-only analysis, use Ollama with a vision model:
+
+```bash
+ollama serve
+ollama pull llama3.2-vision
+
+go run ./cmd/opswatch analyze-image \
+  --vision-provider ollama \
+  --model llama3.2-vision \
+  --image examples/r53_dns.png \
+  --max-image-dimension 1200 \
+  --ollama-num-predict 128 \
+  --intent "Add a CNAME record for api.example.com" \
+  --expected-action "add CNAME record in existing hosted zone" \
+  --protected-domain example.com \
+  --environment prod
+```
+
+You can also use OpenAI vision:
 
 ```bash
 export OPENAI_API_KEY=...
 
 go run ./cmd/opswatch analyze-image \
+  --vision-provider openai \
   --image /path/to/screenshot.png \
   --intent "Add a CNAME record for api.example.com" \
   --expected-action "add CNAME record in existing hosted zone" \
@@ -66,17 +85,67 @@ The vision step converts the image into a normalized `screen` event, then the re
 On macOS, the prototype can capture the full screen repeatedly and analyze each frame:
 
 ```bash
-export OPENAI_API_KEY=...
+ollama serve
 
 go run ./cmd/opswatch watch \
-  --interval 2s \
-  --intent "Add a CNAME record for api.example.com" \
-  --expected-action "add CNAME record in existing hosted zone" \
-  --protected-domain example.com \
+  --vision-provider ollama \
+  --model llama3.2-vision \
+  --interval 10s \
+  --capture-rect 900,0,1150,1000 \
+  --max-image-dimension 1200 \
+  --ollama-num-predict 128 \
+  --skip-unchanged \
+  --min-analysis-interval 30s \
+  --alert-cooldown 2m \
+  --notify \
+  --verbose \
   --environment prod
 ```
 
 This is the early laptop mode. The next adapter should target a selected app/window instead of the full screen, so OpsWatch can watch Zoom, a browser, or a terminal without sending unrelated desktop pixels.
+
+Local vision models can briefly make the laptop feel busy, especially on the first request or with large Retina screenshots. Use `--max-image-dimension 1200`, `--ollama-num-predict 128`, `--min-analysis-interval 30s`, and a slower watch interval while testing.
+
+Watch mode now skips frames that look visually unchanged, suppresses duplicate alerts during a cooldown window, and deletes temporary frames by default. Use `--keep-frames` only when debugging what the watcher captured.
+
+Use `--notify` on macOS to show a local notification whenever OpsWatch emits an alert.
+
+Use `--capture-rect x,y,width,height` to watch only the operational part of the screen. On macOS this uses `screencapture -R`. In a layout with Terminal on the left and AWS Console on the right, a rectangle like `900,0,1150,1000` avoids sending Terminal and browser chrome to the vision model. Add `--verbose` to see capture, resize, hash, and vision timings for each frame.
+
+You can also target a specific macOS window when you know its window id:
+
+```bash
+go run ./cmd/opswatch watch \
+  --vision-provider ollama \
+  --model llama3.2-vision \
+  --window-id 12345 \
+  --interval 10s \
+  --max-image-dimension 1000 \
+  --ollama-num-predict 128 \
+  --min-analysis-interval 30s \
+  --environment prod
+```
+
+Intent, expected action, and protected domains are optional. Without them, OpsWatch still emits generic high-risk action warnings. Set these only when incident context is available:
+
+```bash
+export OPSWATCH_INTENT="Add a CNAME record for api.example.com"
+export OPSWATCH_EXPECTED_ACTION="add CNAME record in existing hosted zone"
+export OPSWATCH_PROTECTED_DOMAIN=example.com
+```
+
+## Menu Bar App
+
+The macOS companion lives in `macos/OpsWatchBar`. It lists visible windows, lets you select one, and starts/stops OpsWatch from the menu bar.
+
+```bash
+cd macos/OpsWatchBar
+OPSWATCH_ROOT=/Users/vishal/go/src/github.com/vdplabs/opswatch swift run
+```
+
+Logs are written to `/tmp/opswatch-menubar.log`. macOS may require Screen Recording permission for Terminal, Swift, or the packaged app.
+
+When you click `Start Watching`, the menu bar app opens the log file immediately and passes `--notify` to the watcher so alerts also appear through macOS notifications.
 
 ## Event Model
 

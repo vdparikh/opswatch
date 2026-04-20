@@ -20,6 +20,10 @@ import (
 
 const defaultEndpoint = "https://api.openai.com/v1/responses"
 
+type ImageAnalyzer interface {
+	AnalyzeImage(ctx context.Context, imagePath string, frame FrameContext) (domain.Event, error)
+}
+
 type OpenAIClient struct {
 	APIKey     string
 	Model      string
@@ -179,18 +183,26 @@ func buildPrompt(frame FrameContext) string {
 }
 
 func dataURLForImage(path string) (string, error) {
-	data, err := os.ReadFile(path)
+	encoded, mediaType, err := imageBase64(path)
 	if err != nil {
 		return "", err
+	}
+	return "data:" + mediaType + ";base64," + encoded, nil
+}
+
+func imageBase64(path string) (string, string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", "", err
 	}
 	mediaType := mime.TypeByExtension(strings.ToLower(filepath.Ext(path)))
 	if mediaType == "" {
 		mediaType = http.DetectContentType(data)
 	}
 	if !strings.HasPrefix(mediaType, "image/") {
-		return "", fmt.Errorf("%s does not look like an image file", path)
+		return "", "", fmt.Errorf("%s does not look like an image file", path)
 	}
-	return "data:" + mediaType + ";base64," + base64.StdEncoding.EncodeToString(data), nil
+	return base64.StdEncoding.EncodeToString(data), mediaType, nil
 }
 
 func extractOutputText(body []byte) (string, error) {
