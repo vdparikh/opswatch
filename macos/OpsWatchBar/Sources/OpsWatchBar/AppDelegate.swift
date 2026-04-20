@@ -148,21 +148,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         process.standardOutput = logHandle
         process.standardError = logHandle
-        process.terminationHandler = { [weak self] process in
-            Task { @MainActor in
-                guard let self else {
-                    return
-                }
-                if self.watcher === process {
-                    self.watcher = nil
-                    self.startItem.isEnabled = true
-                    self.stopItem.isEnabled = false
-                    self.setStatus(process.terminationStatus == 0 ? .selected : .stoppedUnexpectedly)
-                    try? self.logHandle?.close()
-                    self.logHandle = nil
-                }
-            }
-        }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(watcherDidTerminate(_:)),
+            name: Process.didTerminateNotification,
+            object: process
+        )
 
         do {
             try process.run()
@@ -172,6 +163,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             setStatus(.watching)
             NSWorkspace.shared.open(logURL)
         } catch {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: Process.didTerminateNotification,
+                object: process
+            )
             selectedItem.title = "Start failed: \(error.localizedDescription)"
             setStatus(.error)
             try? logHandle?.close()
@@ -180,11 +176,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func stopWatching() {
-        watcher?.terminate()
+        let runningWatcher = watcher
+        runningWatcher?.terminate()
+        if let runningWatcher {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: Process.didTerminateNotification,
+                object: runningWatcher
+            )
+        }
         watcher = nil
         startItem.isEnabled = true
         stopItem.isEnabled = false
         setStatus(selectedWindow == nil ? .idle : .selected)
+        try? logHandle?.close()
+        logHandle = nil
+    }
+
+    @objc private func watcherDidTerminate(_ notification: Notification) {
+        guard let terminatedProcess = notification.object as? Process,
+              watcher === terminatedProcess else {
+            return
+        }
+        NotificationCenter.default.removeObserver(
+            self,
+            name: Process.didTerminateNotification,
+            object: terminatedProcess
+        )
+        watcher = nil
+        startItem.isEnabled = true
+        stopItem.isEnabled = false
+        setStatus(terminatedProcess.terminationStatus == 0 ? .selected : .stoppedUnexpectedly)
         try? logHandle?.close()
         logHandle = nil
     }
