@@ -25,7 +25,7 @@ swift run
 Then:
 
 1. Click `OpsWatch` in the menu bar.
-2. Open `Settings...` and confirm the model, timing, and environment. The repo root is only used by local `swift run` development builds.
+2. Open `Settings...` and confirm the model, timing, environment, and context directory. The repo root is only used by local `swift run` development builds.
 3. Click `Check Setup` to verify Ollama, the model, and macOS capture tools. Local development builds also verify Go and the repo root.
 4. Open `Windows`.
 5. Select the window to watch.
@@ -56,6 +56,7 @@ Recommended local performance defaults:
 - Alert cooldown: `2m`
 - Min analysis interval: `30s`
 - Environment: `prod`
+- Context directory: `~/.opswatch/context`
 
 Optional incident context:
 
@@ -63,9 +64,10 @@ Optional incident context:
 export OPSWATCH_INTENT="Add a CNAME record for api.example.com"
 export OPSWATCH_EXPECTED_ACTION="add CNAME record in existing hosted zone"
 export OPSWATCH_PROTECTED_DOMAIN=example.com
+export OPSWATCH_CONTEXT_DIR="$HOME/.opswatch/context"
 ```
 
-You can also enter these optional fields in `Settings...`. If they are omitted, OpsWatch still watches for high-risk actions such as DNS zone creation and destructive terminal commands.
+You can also enter these optional fields in `Settings...`. For richer incident context, put YAML or JSON context packs in the context directory. If they are omitted, OpsWatch still watches for high-risk actions such as DNS zone creation and destructive terminal commands.
 
 ## Status Indicators
 

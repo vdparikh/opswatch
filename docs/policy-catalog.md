@@ -7,8 +7,12 @@ OpsWatch policies should start narrow, concrete, and high-signal. A good policy 
 DNS:
 
 - intent mismatch: record change intent while a DNS zone is being created
-- protected domain zone creation
+- protected domain zone creation, enriched with owner, environment, and authoritative zone ID when supplied by context packs
 - generic DNS zone creation when no intent is known
+
+Context:
+
+- mutating action in an AWS account marked `prod` or `production` by local context packs
 
 Terminal:
 
@@ -37,6 +41,7 @@ Tier 2 uses lightweight context:
 - environment is prod
 - domain/resource is protected
 - account/region/cluster is production
+- owner/service metadata is known from local context packs
 - actor is using break-glass access
 
 Tier 3 uses incident intent:
@@ -53,4 +58,3 @@ Tier 3 uses incident intent:
 - Include the observed action as evidence.
 - Escalate severity with production/protected context.
 - Keep raw screenshots ephemeral; store structured events.
-

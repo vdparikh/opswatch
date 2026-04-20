@@ -48,11 +48,12 @@ The first implementation should support:
 - OCR/vision summaries normalized into `screen` events
 - speech transcript snippets normalized into `speech` events
 - read-only DNS inventory normalized into `api` events
+- local context packs for protected domains, AWS accounts, services, and runbook expectations
 - policy-driven alerting
 - Slack or text output
 - post-incident timeline export
 
-The current repo starts at the analyzer boundary, with JSONL events standing in for future adapters.
+The current repo starts at the analyzer boundary, with JSONL events, screenshots, selected-window capture, and local context packs standing in for future adapters.
 
 ## Non-Goals
 

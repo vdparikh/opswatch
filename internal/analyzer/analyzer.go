@@ -22,7 +22,10 @@ func New(policies []domain.Policy) Analyzer {
 func (a Analyzer) AnalyzeEvents(ctx context.Context, events []domain.Event) ([]domain.Alert, error) {
 	var alerts []domain.Alert
 	state := domain.IncidentState{
-		ProtectedDomains: make(map[string]bool),
+		ProtectedDomains:       make(map[string]bool),
+		ProtectedDomainDetails: make(map[string]domain.ProtectedDomain),
+		AWSAccounts:            make(map[string]domain.AWSAccount),
+		Services:               make(map[string]domain.Service),
 	}
 
 	for _, event := range events {
@@ -79,6 +82,9 @@ func updateState(state *domain.IncidentState, event domain.Event) {
 	text := strings.ToLower(event.Text)
 
 	if event.Source == domain.SourceRunbook {
+		if intent := event.Context["intent"]; intent != "" {
+			state.LatestIntent = intent
+		}
 		if action := event.Context["expected_action"]; action != "" {
 			state.ExpectedAction = action
 		}
@@ -96,7 +102,55 @@ func updateState(state *domain.IncidentState, event domain.Event) {
 
 	if event.Source == domain.SourceAPI && event.Context["kind"] == "protected_domain" {
 		if domainName := event.Context["domain"]; domainName != "" {
-			state.ProtectedDomains[strings.ToLower(domainName)] = true
+			key := strings.ToLower(domainName)
+			state.ProtectedDomains[key] = true
+			existing := state.ProtectedDomainDetails[key]
+			state.ProtectedDomainDetails[key] = domain.ProtectedDomain{
+				Name:                domainName,
+				Environment:         firstNonEmpty(event.Context["environment"], existing.Environment),
+				Owner:               firstNonEmpty(event.Context["owner"], existing.Owner),
+				AuthoritativeZoneID: firstNonEmpty(event.Context["authoritative_zone_id"], existing.AuthoritativeZoneID),
+				Risk:                firstNonEmpty(event.Context["risk"], existing.Risk),
+			}
 		}
 	}
+
+	if event.Source == domain.SourceAPI && event.Context["kind"] == "aws_account" {
+		if accountID := event.Context["account_id"]; accountID != "" {
+			state.AWSAccounts[accountID] = domain.AWSAccount{
+				ID:          accountID,
+				Name:        event.Context["account_name"],
+				Environment: event.Context["environment"],
+				Owner:       event.Context["owner"],
+				Risk:        event.Context["risk"],
+			}
+		}
+	}
+
+	if event.Source == domain.SourceAPI && event.Context["kind"] == "service" {
+		if service := event.Context["service"]; service != "" {
+			state.Services[strings.ToLower(service)] = domain.Service{
+				Name:        service,
+				Environment: event.Context["environment"],
+				Owner:       event.Context["owner"],
+				Tier:        event.Context["tier"],
+				Risk:        event.Context["risk"],
+			}
+		}
+	}
+
+	if accountID := event.Context["account_id"]; accountID != "" {
+		if account, ok := state.AWSAccounts[accountID]; ok && account.Environment != "" {
+			state.KnownEnvironment = account.Environment
+		}
+	}
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }

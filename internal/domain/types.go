@@ -29,11 +29,38 @@ type Event struct {
 }
 
 type IncidentState struct {
-	LatestIntent     string
-	ExpectedAction   string
-	KnownEnvironment string
-	ProtectedDomains map[string]bool
-	SeenEvents       []Event
+	LatestIntent           string
+	ExpectedAction         string
+	KnownEnvironment       string
+	ProtectedDomains       map[string]bool
+	ProtectedDomainDetails map[string]ProtectedDomain
+	AWSAccounts            map[string]AWSAccount
+	Services               map[string]Service
+	SeenEvents             []Event
+}
+
+type ProtectedDomain struct {
+	Name                string
+	Environment         string
+	Owner               string
+	AuthoritativeZoneID string
+	Risk                string
+}
+
+type AWSAccount struct {
+	ID          string
+	Name        string
+	Environment string
+	Owner       string
+	Risk        string
+}
+
+type Service struct {
+	Name        string
+	Environment string
+	Owner       string
+	Tier        string
+	Risk        string
 }
 
 type Alert struct {

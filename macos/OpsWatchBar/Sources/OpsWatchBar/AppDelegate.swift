@@ -138,6 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             "--alert-cooldown", settings.alertCooldown,
             "--min-analysis-interval", settings.minAnalysisInterval,
             "--environment", settings.environment,
+            "--context-dir", settings.contextDir,
             "--notify",
             "--verbose"
         ]

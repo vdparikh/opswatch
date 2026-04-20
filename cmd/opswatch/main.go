@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/vdplabs/opswatch/internal/analyzer"
 	"github.com/vdplabs/opswatch/internal/capture"
+	"github.com/vdplabs/opswatch/internal/contextpack"
 	"github.com/vdplabs/opswatch/internal/doctor"
 	"github.com/vdplabs/opswatch/internal/domain"
 	"github.com/vdplabs/opswatch/internal/framehash"
@@ -43,6 +45,8 @@ func run(ctx context.Context, args []string) error {
 		return runAnalyze(ctx, args[1:])
 	case "analyze-image":
 		return runAnalyzeImage(ctx, args[1:])
+	case "context":
+		return runContext(ctx, args[1:])
 	case "doctor":
 		return runDoctor(ctx, args[1:])
 	case "watch":
@@ -56,11 +60,81 @@ func run(ctx context.Context, args []string) error {
 
 func usage() error {
 	fmt.Fprintln(os.Stderr, "Usage:")
-	fmt.Fprintln(os.Stderr, "  opswatch analyze --events <events.jsonl>")
-	fmt.Fprintln(os.Stderr, "  opswatch analyze-image --image <screenshot.png> [--vision-provider openai|ollama] [--intent <text>]")
+	fmt.Fprintln(os.Stderr, "  opswatch analyze --events <events.jsonl> [--context-dir <dir>]")
+	fmt.Fprintln(os.Stderr, "  opswatch analyze-image --image <screenshot.png> [--vision-provider openai|ollama] [--context-dir <dir>]")
+	fmt.Fprintln(os.Stderr, "  opswatch context init|inspect [--context-dir <dir>]")
 	fmt.Fprintln(os.Stderr, "  opswatch doctor [--vision-provider openai|ollama]")
-	fmt.Fprintln(os.Stderr, "  opswatch watch [--vision-provider openai|ollama] [--interval 2s] [--intent <text>]")
+	fmt.Fprintln(os.Stderr, "  opswatch watch [--vision-provider openai|ollama] [--interval 2s] [--context-dir <dir>]")
 	return nil
+}
+
+func runContext(ctx context.Context, args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("context command requires init or inspect")
+	}
+	switch args[0] {
+	case "init":
+		return runContextInit(args[1:])
+	case "inspect":
+		return runContextInspect(ctx, args[1:])
+	default:
+		return fmt.Errorf("unknown context command %q", args[0])
+	}
+}
+
+func runContextInit(args []string) error {
+	fs := flag.NewFlagSet("context init", flag.ContinueOnError)
+	contextDir := fs.String("context-dir", defaultContextDir(), "directory for local context packs")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if strings.TrimSpace(*contextDir) == "" {
+		return fmt.Errorf("--context-dir is required")
+	}
+	if err := os.MkdirAll(*contextDir, 0o755); err != nil {
+		return err
+	}
+	path := filepath.Join(*contextDir, "company.yaml")
+	if _, err := os.Stat(path); err == nil {
+		fmt.Fprintf(os.Stdout, "context pack already exists: %s\n", path)
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.WriteFile(path, []byte(sampleContextPack), 0o600); err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stdout, "created context pack: %s\n", path)
+	return nil
+}
+
+func runContextInspect(ctx context.Context, args []string) error {
+	fs := flag.NewFlagSet("context inspect", flag.ContinueOnError)
+	contextDir := fs.String("context-dir", defaultContextDir(), "directory or file containing local context packs")
+	format := fs.String("format", "text", "output format: text or jsonl")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	events, err := contextpack.LoadDir(ctx, *contextDir)
+	if err != nil {
+		return err
+	}
+	switch *format {
+	case "jsonl":
+		return writeEventsJSONL(os.Stdout, events)
+	case "text":
+		fmt.Fprintf(os.Stdout, "Loaded %d context events from %s\n", len(events), *contextDir)
+		for _, event := range events {
+			fmt.Fprintf(os.Stdout, "- %s %s", event.Source, event.Context["kind"])
+			if event.Text != "" {
+				fmt.Fprintf(os.Stdout, ": %s", event.Text)
+			}
+			fmt.Fprintln(os.Stdout)
+		}
+		return nil
+	default:
+		return fmt.Errorf("unsupported format %q", *format)
+	}
 }
 
 func runDoctor(ctx context.Context, args []string) error {
@@ -104,6 +178,7 @@ func runDoctor(ctx context.Context, args []string) error {
 func runAnalyze(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("analyze", flag.ContinueOnError)
 	eventsPath := fs.String("events", "", "path to JSONL incident events")
+	contextDir := fs.String("context-dir", defaultContextDir(), "directory or file containing local context packs; set empty to disable")
 	format := fs.String("format", "text", "output format: text or json")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -118,8 +193,18 @@ func runAnalyze(ctx context.Context, args []string) error {
 	}
 	defer file.Close()
 
+	events, err := readEventsJSONL(ctx, file)
+	if err != nil {
+		return err
+	}
+	contextEvents, err := contextpack.LoadDir(ctx, *contextDir)
+	if err != nil {
+		return err
+	}
+	events = withContextEvents(contextEvents, events)
+
 	engine := analyzer.New(policy.DefaultPolicies())
-	alerts, err := engine.AnalyzeJSONL(ctx, file)
+	alerts, err := engine.AnalyzeEvents(ctx, events)
 	if err != nil {
 		return err
 	}
@@ -141,6 +226,7 @@ func runAnalyzeImage(ctx context.Context, args []string) error {
 	expectedAction := fs.String("expected-action", "", "expected runbook action")
 	environment := fs.String("environment", "", "known environment, such as prod")
 	protectedDomains := fs.String("protected-domain", "", "comma-separated protected domains")
+	contextDir := fs.String("context-dir", defaultContextDir(), "directory or file containing local context packs; set empty to disable")
 	visionProvider := fs.String("vision-provider", "openai", "vision provider: openai or ollama")
 	model := fs.String("model", "", "vision model")
 	ollamaEndpoint := fs.String("ollama-endpoint", "", "Ollama generate endpoint")
@@ -166,13 +252,18 @@ func runAnalyzeImage(ctx context.Context, args []string) error {
 		}
 	}
 
-	events, err := imageEvents(ctx, imagePathForAnalysis, vision.FrameContext{
+	contextEvents, err := contextpack.LoadDir(ctx, *contextDir)
+	if err != nil {
+		return err
+	}
+	frame := enrichFrameWithContext(vision.FrameContext{
 		Intent:           *intent,
 		ExpectedAction:   *expectedAction,
 		Environment:      *environment,
 		ProtectedDomains: splitCSV(*protectedDomains),
 		Actor:            "local-operator",
-	}, visionOptions{
+	}, contextEvents)
+	events, err := imageEvents(ctx, imagePathForAnalysis, frame, visionOptions{
 		Provider:         *visionProvider,
 		Model:            *model,
 		OllamaEndpoint:   *ollamaEndpoint,
@@ -182,6 +273,7 @@ func runAnalyzeImage(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
+	events = withContextEvents(contextEvents, events)
 	if *showEvents {
 		if err := writeEventsJSONL(os.Stdout, events); err != nil {
 			return err
@@ -210,6 +302,37 @@ func saveEventsJSONL(path string, events []domain.Event) error {
 	return writeEventsJSONL(file, events)
 }
 
+func readEventsJSONL(ctx context.Context, r io.Reader) ([]domain.Event, error) {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+	var events []domain.Event
+	line := 0
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+
+		line++
+		raw := strings.TrimSpace(scanner.Text())
+		if raw == "" || strings.HasPrefix(raw, "#") {
+			continue
+		}
+
+		var event domain.Event
+		if err := json.Unmarshal([]byte(raw), &event); err != nil {
+			return nil, fmt.Errorf("line %d: %w", line, err)
+		}
+		events = append(events, event)
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+	return events, nil
+}
+
 func writeEventsJSONL(w io.Writer, events []domain.Event) error {
 	encoder := json.NewEncoder(w)
 	for _, event := range events {
@@ -220,6 +343,49 @@ func writeEventsJSONL(w io.Writer, events []domain.Event) error {
 	return nil
 }
 
+func defaultContextDir() string {
+	if value := strings.TrimSpace(os.Getenv("OPSWATCH_CONTEXT_DIR")); value != "" {
+		return value
+	}
+	return contextpack.DefaultDir()
+}
+
+func withContextEvents(contextEvents, events []domain.Event) []domain.Event {
+	combined := make([]domain.Event, 0, len(contextEvents)+len(events))
+	combined = append(combined, contextEvents...)
+	combined = append(combined, events...)
+	return combined
+}
+
+func enrichFrameWithContext(frame vision.FrameContext, contextEvents []domain.Event) vision.FrameContext {
+	seenDomains := make(map[string]bool)
+	for _, domainName := range frame.ProtectedDomains {
+		seenDomains[strings.ToLower(domainName)] = true
+	}
+	for _, event := range contextEvents {
+		if event.Context == nil {
+			continue
+		}
+		if frame.Intent == "" && event.Context["intent"] != "" {
+			frame.Intent = event.Context["intent"]
+		}
+		if frame.ExpectedAction == "" && event.Context["expected_action"] != "" {
+			frame.ExpectedAction = event.Context["expected_action"]
+		}
+		if frame.Environment == "" && event.Context["environment"] != "" {
+			frame.Environment = event.Context["environment"]
+		}
+		if event.Context["kind"] == "protected_domain" {
+			domainName := strings.ToLower(strings.TrimSpace(event.Context["domain"]))
+			if domainName != "" && !seenDomains[domainName] {
+				frame.ProtectedDomains = append(frame.ProtectedDomains, domainName)
+				seenDomains[domainName] = true
+			}
+		}
+	}
+	return frame
+}
+
 func runWatch(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("watch", flag.ContinueOnError)
 	interval := fs.Duration("interval", 2*time.Second, "capture interval")
@@ -227,6 +393,7 @@ func runWatch(ctx context.Context, args []string) error {
 	expectedAction := fs.String("expected-action", "", "expected runbook action")
 	environment := fs.String("environment", "", "known environment, such as prod")
 	protectedDomains := fs.String("protected-domain", "", "comma-separated protected domains")
+	contextDir := fs.String("context-dir", defaultContextDir(), "directory or file containing local context packs; set empty to disable")
 	visionProvider := fs.String("vision-provider", "openai", "vision provider: openai or ollama")
 	model := fs.String("model", "", "vision model")
 	ollamaEndpoint := fs.String("ollama-endpoint", "", "Ollama generate endpoint")
@@ -276,6 +443,11 @@ func runWatch(ctx context.Context, args []string) error {
 	hasLastHash := false
 	var lastAnalysisAt time.Time
 	lastAlertAt := make(map[string]time.Time)
+	contextEvents, err := contextpack.LoadDir(ctx, *contextDir)
+	if err != nil {
+		return err
+	}
+	frame = enrichFrameWithContext(frame, contextEvents)
 
 	for {
 		frameStarted := time.Now()
@@ -355,6 +527,7 @@ func runWatch(ctx context.Context, args []string) error {
 			waitForNextFrame(ctx, *interval)
 			continue
 		}
+		events = withContextEvents(contextEvents, events)
 		engine := analyzer.New(policy.DefaultPolicies())
 		alerts, err := engine.AnalyzeEvents(ctx, events)
 		if err != nil {
@@ -579,3 +752,42 @@ func splitCSV(value string) []string {
 	}
 	return values
 }
+
+const sampleContextPack = `incident:
+  id: inc-demo
+  title: Demo DNS incident
+  intent: Add a CNAME record for api.example.com
+  expected_action: add CNAME record in existing hosted zone
+  environment: prod
+  service: api
+
+protected_domains:
+  - name: example.com
+    environment: prod
+    owner: platform
+    authoritative_zone_id: Z123456789
+    risk: critical
+
+aws_accounts:
+  - id: "123456789012"
+    name: prod
+    environment: prod
+    owner: platform
+    risk: critical
+
+services:
+  - name: api
+    environment: prod
+    owner: application-platform
+    tier: tier-0
+    risk: critical
+
+runbooks:
+  - id: dns-add-cname
+    title: Add API CNAME
+    service: api
+    environment: prod
+    expected_action: add CNAME record in existing hosted zone
+    allowed_actions:
+      - route53.change_record
+`

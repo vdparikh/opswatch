@@ -52,20 +52,33 @@ func (DNSPolicy) Evaluate(event domain.Event, state domain.IncidentState) []doma
 	}
 
 	if domainName != "" && state.ProtectedDomains[domainName] {
+		detail := state.ProtectedDomainDetails[domainName]
+		evidence := []string{
+			"protected domain: " + domainName,
+			"observed: " + event.Text,
+		}
+		if detail.AuthoritativeZoneID != "" {
+			evidence = append(evidence, "authoritative zone: "+detail.AuthoritativeZoneID)
+		}
+		if detail.Owner != "" {
+			evidence = append(evidence, "owner: "+detail.Owner)
+		}
+		if detail.Environment != "" {
+			evidence = append(evidence, "environment: "+detail.Environment)
+		}
 		alerts = append(alerts, domain.Alert{
 			Timestamp:   event.Timestamp,
 			Severity:    domain.SeverityCritical,
 			Title:       "Protected domain zone creation",
 			Explanation: "Observed creation of a DNS zone for a protected domain. This can change authoritative DNS behavior and has high blast radius.",
-			Evidence: []string{
-				"protected domain: " + domainName,
-				"observed: " + event.Text,
-			},
-			Source:     event.Source,
-			Confidence: 0.92,
+			Evidence:    evidence,
+			Source:      event.Source,
+			Confidence:  0.92,
 			Labels: map[string]string{
-				"category": "blast_radius",
-				"domain":   domainName,
+				"category":    "blast_radius",
+				"domain":      domainName,
+				"environment": firstNonEmpty(detail.Environment, state.KnownEnvironment),
+				"owner":       detail.Owner,
 			},
 		})
 	}

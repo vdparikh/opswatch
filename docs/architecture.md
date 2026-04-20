@@ -9,6 +9,7 @@ flowchart LR
     Capture --> Vision
     Slack["Slack incident channel"] --> Intent["Intent extractor"]
     Runbook["Runbook / ticket"] --> Intent
+    LocalContext["Local context packs"] --> State
     Cloud["Read-only cloud APIs"] --> State["State inventory"]
     Terminal["Terminal OCR"] --> Events["Normalized event stream"]
     Vision --> Events
@@ -29,6 +30,7 @@ Adapters convert messy inputs into normalized observations:
 - speech transcript snippets
 - runbook expectations
 - read-only infrastructure state
+- local context pack entries
 
 The analyzer should not care whether a screen event came from Zoom, screenshots, browser automation, or a replay file.
 
@@ -62,6 +64,7 @@ The current watcher already includes the first local-control pieces:
 - temporary frame cleanup by default
 - optional rectangle capture for watching only the operational part of the screen
 - selected-window capture via macOS window id
+- local context pack loading through `--context-dir`
 - per-frame timing diagnostics for tuning local model performance
 
 ## macOS Menu Bar Companion
@@ -70,11 +73,11 @@ The current watcher already includes the first local-control pieces:
 
 - lists visible windows through CoreGraphics
 - lets the user select the target window
-- starts `go run ./cmd/opswatch watch --window-id <id>` in the background
+- starts the bundled `opswatch watch --window-id <id>` binary in release builds, or `go run ./cmd/opswatch watch --window-id <id>` in local development
 - writes watcher logs to `/tmp/opswatch-menubar.log`
 - stops the watcher when requested or when the app quits
 
-This is the first step toward a packaged background app. The next version should expose settings in the UI instead of relying on environment variables.
+The packaged app includes the Go CLI and exposes model, timing, environment, optional intent, and context directory settings in the UI.
 
 ## Policy Engine
 
@@ -84,6 +87,7 @@ Policies evaluate each event against rolling incident state. State includes:
 - expected runbook action
 - environment/account/region hints
 - protected domains and resources
+- AWS account and service ownership from local context packs
 - recent observed actions
 
 ## First Policies
@@ -99,6 +103,11 @@ Terminal policy:
 - detect destructive commands
 - increase severity in production
 - flag broad selectors
+
+Context policy:
+
+- detect mutating actions in AWS accounts marked production by local context
+- enrich alerts with account owner and environment
 
 ## Privacy Posture
 

@@ -32,6 +32,7 @@ This repo currently includes:
 - screenshot/image analysis through OpenAI vision
 - a macOS fullscreen watcher prototype using `screencapture`
 - DNS and terminal safety policies
+- local YAML/JSON context packs for protected domains, AWS accounts, services, and incident runbooks
 - high-signal alert output
 - a sample incident stream based on the DNS-zone-vs-record failure mode
 
@@ -57,11 +58,9 @@ go run ./cmd/opswatch analyze-image \
   --vision-provider ollama \
   --model llama3.2-vision \
   --image examples/r53_dns.png \
+  --context-dir examples/context \
   --max-image-dimension 1200 \
   --ollama-num-predict 128 \
-  --intent "Add a CNAME record for api.example.com" \
-  --expected-action "add CNAME record in existing hosted zone" \
-  --protected-domain example.com \
   --environment prod
 ```
 
@@ -80,6 +79,17 @@ go run ./cmd/opswatch analyze-image \
 ```
 
 The vision step converts the image into a normalized `screen` event, then the regular OpsWatch policies decide whether to alert.
+
+## Local Context
+
+OpsWatch can read local context packs from `~/.opswatch/context` or a path passed with `--context-dir`. These packs provide incident intent, expected action, protected domains, AWS accounts, service ownership, and runbook hints without sending internal inventory anywhere.
+
+```bash
+go run ./cmd/opswatch context init
+go run ./cmd/opswatch context inspect
+```
+
+See [docs/context-packs.md](docs/context-packs.md) for the schema.
 
 ## Start Watching
 
@@ -133,6 +143,7 @@ Intent, expected action, and protected domains are optional. Without them, OpsWa
 export OPSWATCH_INTENT="Add a CNAME record for api.example.com"
 export OPSWATCH_EXPECTED_ACTION="add CNAME record in existing hosted zone"
 export OPSWATCH_PROTECTED_DOMAIN=example.com
+export OPSWATCH_CONTEXT_DIR="$HOME/.opswatch/context"
 ```
 
 ## Menu Bar App
@@ -162,7 +173,7 @@ swift run
 Then use the menu bar:
 
 1. Click `OpsWatch`.
-2. Open `Settings...` and confirm the model, timing, and environment. The repo root is only used by local `swift run` development builds.
+2. Open `Settings...` and confirm the model, timing, environment, and context directory. The repo root is only used by local `swift run` development builds.
 3. Click `Check Setup` to verify Ollama, the model, and macOS capture tools. Local development builds also verify Go and the repo root.
 4. Open `Windows`.
 5. Select the browser, terminal, Zoom, or console window to watch.
@@ -177,12 +188,13 @@ The menu bar status indicators are:
 - `OpsWatch ●` means watching
 - `OpsWatch !` means attention needed
 
-Optional incident context makes alerts more specific. You can set these in `Settings...`:
+Optional incident context makes alerts more specific. You can set these in `Settings...` or put them in local context packs:
 
 ```bash
 export OPSWATCH_INTENT="Add a CNAME record for api.example.com"
 export OPSWATCH_EXPECTED_ACTION="add CNAME record in existing hosted zone"
 export OPSWATCH_PROTECTED_DOMAIN=example.com
+export OPSWATCH_CONTEXT_DIR="$HOME/.opswatch/context"
 ```
 
 Without these optional values, OpsWatch still emits baseline high-risk warnings such as DNS zone creation, destructive terminal commands, IAM changes, network edge changes, infra apply/deploy actions, and broad-scope operations.
