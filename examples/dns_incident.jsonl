@@ -1,0 +1,5 @@
+{"ts":"2026-04-20T20:42:00Z","source":"api","text":"Loaded protected domain policy","context":{"kind":"protected_domain","domain":"example.com"}}
+{"ts":"2026-04-20T20:42:05Z","source":"runbook","text":"DNS mitigation step","context":{"expected_action":"add CNAME record in existing hosted zone"}}
+{"ts":"2026-04-20T20:42:10Z","source":"speech","actor":"incident-commander","text":"Add a CNAME record for api.example.com pointing at the failover target"}
+{"ts":"2026-04-20T20:42:22Z","source":"screen","actor":"operator","text":"AWS Console Route53 Hosted zones Create hosted zone example.com","context":{"action":"create","resource_type":"hosted_zone","domain":"example.com","environment":"prod"}}
+{"ts":"2026-04-20T20:42:55Z","source":"terminal","actor":"operator","text":"kubectl delete pod api-6f99 --namespace prod","context":{"environment":"prod"}}
