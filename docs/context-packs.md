@@ -19,6 +19,19 @@ opswatch context init
 opswatch context inspect
 ```
 
+You can also sync the active AWS CLI identity into a local pack:
+
+```bash
+opswatch context sync aws \
+  --profile prod \
+  --environment prod \
+  --account-name prod \
+  --owner platform \
+  --risk critical
+```
+
+To also import Route 53 hosted zones as protected domains, add `--include-route53`. This uses read-only AWS CLI calls: `sts get-caller-identity` and, when requested, `route53 list-hosted-zones`.
+
 Then run with context:
 
 ```bash
@@ -84,3 +97,17 @@ OpsWatch converts context pack entries into normal incident events before analyz
 - `runbooks` provides expected action hints and allowed action names for policy evolution.
 
 Context packs are local files. They are not uploaded by OpsWatch.
+
+## AWS Sync
+
+`opswatch context sync aws` writes a pack named `aws-<account-id>.yaml` in the context directory. It intentionally uses the AWS CLI instead of storing long-lived credentials in OpsWatch.
+
+Useful flags:
+
+- `--profile`: AWS CLI profile to use
+- `--region`: AWS CLI region for commands that need one
+- `--environment`: environment label such as `prod` or `staging`
+- `--account-name`: friendly account name
+- `--owner`: owning team
+- `--risk`: risk label such as `critical`, `high`, or `medium`
+- `--include-route53`: import hosted zones as protected domains

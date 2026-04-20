@@ -89,6 +89,17 @@ go run ./cmd/opswatch context init
 go run ./cmd/opswatch context inspect
 ```
 
+Sync the current AWS CLI account into context:
+
+```bash
+go run ./cmd/opswatch context sync aws \
+  --profile prod \
+  --environment prod \
+  --account-name prod \
+  --owner platform \
+  --risk critical
+```
+
 See [docs/context-packs.md](docs/context-packs.md) for the schema.
 
 ## Start Watching
@@ -182,11 +193,11 @@ Then use the menu bar:
 
 The menu bar status indicators are:
 
-- `OpsWatch` means idle
-- `OpsWatch ◦` means a window is selected
-- `OpsWatch …` means watcher is starting
-- `OpsWatch ●` means watching
-- `OpsWatch !` means attention needed
+- shield/eye icon plus `OpsWatch` means idle
+- shield/eye icon plus `OpsWatch ◦` means a window is selected
+- shield/eye icon plus `OpsWatch …` means watcher is starting
+- shield/eye icon plus `OpsWatch ●` means watching
+- shield/eye icon plus `OpsWatch !` means attention needed
 
 Optional incident context makes alerts more specific. You can set these in `Settings...` or put them in local context packs:
 

@@ -334,8 +334,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setStatus(_ status: WatchStatus) {
+        if let button = statusItem.button {
+            button.image = makeStatusIcon()
+            button.imagePosition = .imageLeading
+            button.toolTip = "OpsWatch: \(status.description)"
+        }
         statusItem.button?.title = status.menuTitle
         statusItemRow.title = "Status: \(status.description)"
+    }
+
+    private func makeStatusIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+        image.lockFocus()
+
+        let shield = NSBezierPath()
+        shield.move(to: NSPoint(x: 9, y: 16))
+        shield.curve(to: NSPoint(x: 15, y: 13), controlPoint1: NSPoint(x: 11, y: 15.5), controlPoint2: NSPoint(x: 13, y: 14.5))
+        shield.curve(to: NSPoint(x: 9, y: 2), controlPoint1: NSPoint(x: 14.7, y: 7.8), controlPoint2: NSPoint(x: 12.4, y: 4.2))
+        shield.curve(to: NSPoint(x: 3, y: 13), controlPoint1: NSPoint(x: 5.6, y: 4.2), controlPoint2: NSPoint(x: 3.3, y: 7.8))
+        shield.curve(to: NSPoint(x: 9, y: 16), controlPoint1: NSPoint(x: 5, y: 14.5), controlPoint2: NSPoint(x: 7, y: 15.5))
+        shield.close()
+        shield.lineWidth = 1.6
+        NSColor.labelColor.setStroke()
+        shield.stroke()
+
+        let eye = NSBezierPath(ovalIn: NSRect(x: 6, y: 7, width: 6, height: 4))
+        eye.lineWidth = 1.3
+        eye.stroke()
+
+        let pupil = NSBezierPath(ovalIn: NSRect(x: 8.2, y: 8.2, width: 1.6, height: 1.6))
+        NSColor.labelColor.setFill()
+        pupil.fill()
+
+        image.unlockFocus()
+        image.isTemplate = true
+        return image
     }
 
 }

@@ -49,6 +49,7 @@ The first implementation should support:
 - speech transcript snippets normalized into `speech` events
 - read-only DNS inventory normalized into `api` events
 - local context packs for protected domains, AWS accounts, services, and runbook expectations
+- read-only context sync starting with AWS CLI account metadata
 - policy-driven alerting
 - Slack or text output
 - post-incident timeline export

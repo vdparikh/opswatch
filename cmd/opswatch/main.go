@@ -62,7 +62,7 @@ func usage() error {
 	fmt.Fprintln(os.Stderr, "Usage:")
 	fmt.Fprintln(os.Stderr, "  opswatch analyze --events <events.jsonl> [--context-dir <dir>]")
 	fmt.Fprintln(os.Stderr, "  opswatch analyze-image --image <screenshot.png> [--vision-provider openai|ollama] [--context-dir <dir>]")
-	fmt.Fprintln(os.Stderr, "  opswatch context init|inspect [--context-dir <dir>]")
+	fmt.Fprintln(os.Stderr, "  opswatch context init|inspect|sync [--context-dir <dir>]")
 	fmt.Fprintln(os.Stderr, "  opswatch doctor [--vision-provider openai|ollama]")
 	fmt.Fprintln(os.Stderr, "  opswatch watch [--vision-provider openai|ollama] [--interval 2s] [--context-dir <dir>]")
 	return nil
@@ -77,6 +77,8 @@ func runContext(ctx context.Context, args []string) error {
 		return runContextInit(args[1:])
 	case "inspect":
 		return runContextInspect(ctx, args[1:])
+	case "sync":
+		return runContextSync(ctx, args[1:])
 	default:
 		return fmt.Errorf("unknown context command %q", args[0])
 	}

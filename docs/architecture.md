@@ -31,6 +31,7 @@ Adapters convert messy inputs into normalized observations:
 - runbook expectations
 - read-only infrastructure state
 - local context pack entries
+- read-only sync output from tools such as the AWS CLI
 
 The analyzer should not care whether a screen event came from Zoom, screenshots, browser automation, or a replay file.
 
@@ -65,6 +66,7 @@ The current watcher already includes the first local-control pieces:
 - optional rectangle capture for watching only the operational part of the screen
 - selected-window capture via macOS window id
 - local context pack loading through `--context-dir`
+- read-only AWS CLI context sync through `opswatch context sync aws`
 - per-frame timing diagnostics for tuning local model performance
 
 ## macOS Menu Bar Companion

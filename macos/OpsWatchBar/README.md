@@ -71,11 +71,11 @@ You can also enter these optional fields in `Settings...`. For richer incident c
 
 ## Status Indicators
 
-- `OpsWatch` means idle
-- `OpsWatch ◦` means a window is selected
-- `OpsWatch …` means watcher is starting
-- `OpsWatch ●` means watching
-- `OpsWatch !` means attention needed
+- shield/eye icon plus `OpsWatch` means idle
+- shield/eye icon plus `OpsWatch ◦` means a window is selected
+- shield/eye icon plus `OpsWatch …` means watcher is starting
+- shield/eye icon plus `OpsWatch ●` means watching
+- shield/eye icon plus `OpsWatch !` means attention needed
 
 Logs are written to:
 

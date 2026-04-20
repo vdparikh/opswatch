@@ -145,6 +145,17 @@ func LoadFile(ctx context.Context, path string) ([]domain.Event, error) {
 	return pack.Events(filepath.Base(path)), nil
 }
 
+func SaveYAML(path string, pack Pack) error {
+	data, err := yaml.Marshal(pack)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, data, 0o600)
+}
+
 func (p Pack) Events(source string) []domain.Event {
 	now := time.Now().UTC()
 	var events []domain.Event
