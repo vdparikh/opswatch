@@ -187,6 +187,8 @@ Logs are written to `/tmp/opswatch-menubar.log`. macOS may require Screen Record
 
 When you click `Start Watching`, the menu bar app opens the log file immediately and passes `--notify` to the watcher so alerts also appear through macOS notifications.
 
+If `swift run` fails on another Mac with `Invalid manifest` or `undefined symbols for architecture arm64`, see [macos/OpsWatchBar/README.md](macos/OpsWatchBar/README.md#troubleshooting-swift) for Xcode/SwiftPM cleanup steps.
+
 ## Event Model
 
 OpsWatch consumes JSON Lines events. Each line is one observation:

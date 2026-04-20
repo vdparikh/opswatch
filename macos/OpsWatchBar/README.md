@@ -86,3 +86,38 @@ The log opens automatically when you click `Start Watching`. The watcher also se
 macOS may ask for Screen Recording permission for Terminal, Swift, or the built app. If the window list is incomplete or captures fail, grant permission in:
 
 System Settings -> Privacy & Security -> Screen Recording
+
+## Troubleshooting Swift
+
+If `swift run` fails with `Invalid manifest`, `undefined symbols for architecture arm64`, or SDK/compiler mismatch errors, check the local Apple toolchain:
+
+```bash
+cd /Users/vishal/go/src/github.com/vdplabs/opswatch/macos/OpsWatchBar
+
+swift --version
+xcode-select -p
+xcrun --show-sdk-path
+```
+
+If Xcode is installed, prefer the full Xcode toolchain:
+
+```bash
+sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
+```
+
+If only Command Line Tools are installed, refresh them:
+
+```bash
+xcode-select --install
+```
+
+Then clean and rebuild:
+
+```bash
+rm -rf .build
+swift package reset
+swift build
+swift run
+```
+
+The menu bar app requires macOS 13 or newer. If the Swift compiler and SDK versions do not match, update Xcode from the App Store or Apple Developer downloads, then rerun the build.
