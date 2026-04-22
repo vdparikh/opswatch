@@ -60,7 +60,7 @@ chmod +x "${RESOURCES_DIR}/opswatch"
 
 (
   cd "${DIST_DIR}"
-  ditto -c -k --keepParent --norsrc "${APP_NAME}.app" "${APP_NAME}-macos.zip"
+  ditto -c -k --keepParent --norsrc "${APP_NAME}.app" "${APP_NAME}-macos-arm64.zip"
 )
 
-echo "Built ${DIST_DIR}/${APP_NAME}-macos.zip"
+echo "Built ${DIST_DIR}/${APP_NAME}-macos-arm64.zip"

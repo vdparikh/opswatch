@@ -1,0 +1,46 @@
+incident:
+  id: inc-demo
+  title: Demo service incident
+  intent: Restart one unhealthy service instance
+  expected_action: restart one instance without changing shared infrastructure
+  environment: prod
+  service: api
+
+protected_domains:
+  - name: example.com
+    environment: prod
+    owner: platform
+    authoritative_zone_id: Z123456789
+    risk: critical
+  - name: internal.example.com
+    environment: prod
+    owner: infrastructure
+    risk: high
+
+aws_accounts:
+  - id: "123456789012"
+    name: prod
+    environment: prod
+    owner: platform
+    risk: critical
+  - id: "210987654321"
+    name: staging
+    environment: staging
+    owner: platform
+    risk: medium
+
+services:
+  - name: api
+    environment: prod
+    owner: application-platform
+    tier: tier-0
+    risk: critical
+
+runbooks:
+  - id: service-restart
+    title: Restart one service instance
+    service: api
+    environment: prod
+    expected_action: restart one instance without changing shared infrastructure
+    allowed_actions:
+      - kubernetes.restart_pod

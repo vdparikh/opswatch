@@ -10,10 +10,10 @@ Start Ollama and pull a local vision model:
 
 ```bash
 ollama serve
-ollama pull llama3.2-vision
+ollama pull qwen2.5vl
 ```
 
-For a release install, download `OpsWatchBar-macos.zip`, unzip it, and move `OpsWatchBar.app` to `/Applications`. The release app includes the `opswatch` CLI and does not require Go or a source checkout.
+For a release install, download `OpsWatchBar-macos-arm64.zip`, unzip it, and move `OpsWatchBar.app` to `/Applications`. The release app includes the `opswatch` CLI and does not require Go or a source checkout.
 
 For local development, launch the menu bar app:
 
@@ -25,7 +25,7 @@ swift run
 Then:
 
 1. Click `OpsWatch` in the menu bar.
-2. Open `Settings...` and confirm the model, timing, and environment. The repo root is only used by local `swift run` development builds.
+2. Open `Settings...` and confirm the model, timing, environment, and context directory. The repo root is only used by local `swift run` development builds.
 3. Click `Check Setup` to verify Ollama, the model, and macOS capture tools. Local development builds also verify Go and the repo root.
 4. Open `Windows`.
 5. Select the window to watch.
@@ -49,31 +49,32 @@ Recommended local performance defaults:
 
 - Repo root: `/Users/vishal/go/src/github.com/vdplabs/opswatch` for local development only
 - Vision provider: `ollama`
-- Model: `llama3.2-vision`
+- Model: `qwen2.5vl`
 - Interval: `10s`
 - Max image dimension: `1000`
 - Ollama num predict: `128`
 - Alert cooldown: `2m`
 - Min analysis interval: `30s`
 - Environment: `prod`
+- Context directory: `~/.opswatch/context`
 
 Optional incident context:
 
 ```bash
-export OPSWATCH_INTENT="Add a CNAME record for api.example.com"
-export OPSWATCH_EXPECTED_ACTION="add CNAME record in existing hosted zone"
-export OPSWATCH_PROTECTED_DOMAIN=example.com
+export OPSWATCH_INTENT="Restart one unhealthy service instance"
+export OPSWATCH_EXPECTED_ACTION="restart one instance without changing shared infrastructure"
+export OPSWATCH_CONTEXT_DIR="$HOME/.opswatch/context"
 ```
 
-You can also enter these optional fields in `Settings...`. If they are omitted, OpsWatch still watches for high-risk actions such as DNS zone creation and destructive terminal commands.
+You can also enter these optional fields in `Settings...`. For richer incident context, put YAML or JSON context packs in the context directory. If they are omitted, OpsWatch still watches for high-risk actions such as DNS zone creation and destructive terminal commands.
 
 ## Status Indicators
 
-- `OpsWatch` means idle
-- `OpsWatch ◦` means a window is selected
-- `OpsWatch …` means watcher is starting
-- `OpsWatch ●` means watching
-- `OpsWatch !` means attention needed
+- shield/eye icon plus `OpsWatch` means idle
+- shield/eye icon plus `OpsWatch ◦` means a window is selected
+- shield/eye icon plus `OpsWatch …` means watcher is starting
+- shield/eye icon plus `OpsWatch ●` means watching
+- shield/eye icon plus `OpsWatch !` means attention needed
 
 Logs are written to:
 

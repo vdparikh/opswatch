@@ -1,0 +1,3 @@
+{"ts":"2026-04-20T20:42:00Z","source":"runbook","text":"Production mitigation step","context":{"expected_action":"restart one unhealthy service instance","environment":"prod"}}
+{"ts":"2026-04-20T20:42:10Z","source":"speech","actor":"incident-commander","text":"Restart one unhealthy service instance in production"}
+{"ts":"2026-04-20T20:42:22Z","source":"terminal","actor":"operator","text":"kubectl delete pods --all --namespace prod","context":{"command":"kubectl delete pods --all --namespace prod","environment":"prod"}}

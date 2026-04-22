@@ -3,7 +3,6 @@ package analyzer
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/vdplabs/opswatch/internal/domain"
@@ -11,7 +10,7 @@ import (
 )
 
 func TestRoute53ScreenshotGoldenEvents(t *testing.T) {
-	path := filepath.Join("..", "..", "examples", "r53_dns_events.jsonl")
+	path := "testdata/dns_events.jsonl"
 	file, err := os.Open(path)
 	if err != nil {
 		t.Fatal(err)

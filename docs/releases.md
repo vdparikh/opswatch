@@ -6,10 +6,16 @@ OpsWatch can publish downloadable macOS artifacts from GitHub Releases.
 
 Each tagged release builds:
 
-- `opswatch-darwin-arm64`: CLI for Apple Silicon Macs
-- `opswatch-darwin-amd64`: CLI for Intel Macs
-- `OpsWatchBar-macos.zip`: unsigned macOS menu bar app with the `opswatch` CLI bundled inside the app
+- `opswatch-cli-darwin-arm64`: CLI for Apple Silicon Macs
+- `opswatch-cli-darwin-amd64`: CLI for Intel Macs
+- `OpsWatchBar-macos-arm64.zip`: unsigned macOS menu bar app with the `opswatch` CLI bundled inside the app
 - `checksums.txt`: SHA-256 checksums for CLI binaries
+
+Every GitHub release should include:
+
+- `What is OpsWatch`: one sentence plus a README link
+- `This release`: a short summary of what changed in the tag
+- `Quick start`: download, unzip, pull a model, select a window, start watching
 
 ## Create A Release
 
@@ -35,7 +41,7 @@ bash scripts/package_macos_app.sh
 The artifact is written to:
 
 ```text
-dist/OpsWatchBar-macos.zip
+dist/OpsWatchBar-macos-arm64.zip
 ```
 
 The package script builds the Swift menu bar app and copies a native `opswatch` CLI into `OpsWatchBar.app/Contents/Resources/opswatch`. Release installs can start watching without a Go checkout.
@@ -43,19 +49,19 @@ The package script builds the Swift menu bar app and copies a native `opswatch` 
 Build the CLI locally:
 
 ```bash
-GOOS=darwin GOARCH=arm64 go build -o dist/opswatch-darwin-arm64 ./cmd/opswatch
-GOOS=darwin GOARCH=amd64 go build -o dist/opswatch-darwin-amd64 ./cmd/opswatch
+GOOS=darwin GOARCH=arm64 go build -o dist/opswatch-cli-darwin-arm64 ./cmd/opswatch
+GOOS=darwin GOARCH=amd64 go build -o dist/opswatch-cli-darwin-amd64 ./cmd/opswatch
 ```
 
 ## Installing The Menu Bar App
 
-Download `OpsWatchBar-macos.zip`, unzip it, and move `OpsWatchBar.app` to `/Applications`.
+Download `OpsWatchBar-macos-arm64.zip`, unzip it, and move `OpsWatchBar.app` to `/Applications`.
 
 Start Ollama and pull the local vision model before watching:
 
 ```bash
 ollama serve
-ollama pull llama3.2-vision
+ollama pull qwen2.5vl
 ```
 
 The app is currently unsigned and not notarized. macOS may block it on first open. To allow it:

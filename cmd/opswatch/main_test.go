@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/vdplabs/opswatch/internal/domain"
+	"github.com/vdplabs/opswatch/internal/vision"
 )
 
 func TestFilterAlertCooldown(t *testing.T) {
@@ -53,4 +57,66 @@ func TestParseCaptureRectEmpty(t *testing.T) {
 	if ok {
 		t.Fatal("expected no rect")
 	}
+}
+
+func TestContextInitCreatesPack(t *testing.T) {
+	dir := t.TempDir()
+	if err := runContext(context.Background(), []string{"init", "--context-dir", dir}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "company.yaml")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestEnrichFrameWithContext(t *testing.T) {
+	events := []domain.Event{{
+		Source: domain.SourceRunbook,
+		Context: map[string]string{
+			"intent":          "Add DNS record",
+			"expected_action": "add CNAME",
+			"environment":     "prod",
+		},
+	}, {
+		Source: domain.SourceAPI,
+		Context: map[string]string{
+			"kind":   "protected_domain",
+			"domain": "example.com",
+		},
+	}}
+
+	frame := enrichFrameWithContext(visionFrame(), events)
+	if frame.Intent != "Add DNS record" || frame.ExpectedAction != "add CNAME" || frame.Environment != "prod" {
+		t.Fatalf("frame was not enriched: %#v", frame)
+	}
+	if len(frame.ProtectedDomains) != 1 || frame.ProtectedDomains[0] != "example.com" {
+		t.Fatalf("expected protected domain, got %#v", frame.ProtectedDomains)
+	}
+}
+
+func TestNotificationMessageIncludesObservedAndIntent(t *testing.T) {
+	alert := domain.Alert{
+		Explanation: "Observed DNS zone creation while current intent appears to be adding or changing a DNS record.",
+		Evidence: []string{
+			"intent: add a DNS record",
+			"observed: create a new primary DNS zone",
+		},
+	}
+
+	got := notificationMessage(alert)
+	want := "Observed: create a new primary DNS zone | Intent: add a DNS record"
+	if got != want {
+		t.Fatalf("unexpected notification message %q", got)
+	}
+}
+
+func TestNotificationMessageFallsBackToExplanation(t *testing.T) {
+	alert := domain.Alert{Explanation: "generic explanation"}
+	if got := notificationMessage(alert); got != "generic explanation" {
+		t.Fatalf("unexpected fallback message %q", got)
+	}
+}
+
+func visionFrame() vision.FrameContext {
+	return vision.FrameContext{Actor: "local-operator"}
 }

@@ -1,0 +1,4 @@
+{"ts":"2026-04-20T16:32:58.879785Z","source":"api","text":"Loaded protected domain policy","context":{"domain":"example.test","kind":"protected_domain"}}
+{"ts":"2026-04-20T16:32:58.879785Z","source":"runbook","text":"Expected action","context":{"expected_action":"update a DNS record in the existing managed zone"}}
+{"ts":"2026-04-20T16:32:58.879785Z","source":"speech","actor":"operator","text":"Update a DNS record for service.example.test"}
+{"ts":"2026-04-20T16:33:35.10754Z","source":"screen","actor":"local-operator","text":"Create hosted zone","context":{"account":"OpsWatch","action":"create","app":"DNS Console","command":"Create hosted zone","domain":"example.test","environment":"prod","image_path":"testdata/screenshot.png","region":"global","resource_type":"hosted zone","risk_hint":"medium","vision_provider":"ollama"}}

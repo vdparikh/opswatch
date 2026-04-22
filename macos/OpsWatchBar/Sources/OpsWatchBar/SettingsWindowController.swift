@@ -8,7 +8,7 @@ final class SettingsWindowController: NSWindowController {
     init(settings: AppSettings, onSave: @escaping (AppSettings) -> Void) {
         self.onSave = onSave
 
-        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 640, height: 500))
+        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 640, height: 540))
         let window = NSWindow(
             contentRect: contentView.frame,
             styleMask: [.titled, .closable],
@@ -48,6 +48,7 @@ final class SettingsWindowController: NSWindowController {
         addField("Min analysis interval", key: "minAnalysisInterval", value: settings.minAnalysisInterval, stack: stack)
         addField("Alert cooldown", key: "alertCooldown", value: settings.alertCooldown, stack: stack)
         addField("Environment", key: "environment", value: settings.environment, stack: stack)
+        addField("Context directory", key: "contextDir", value: settings.contextDir, stack: stack)
         addField("Intent (optional)", key: "intent", value: settings.intent, stack: stack)
         addField("Expected action (optional)", key: "expectedAction", value: settings.expectedAction, stack: stack)
         addField("Protected domain (optional)", key: "protectedDomain", value: settings.protectedDomain, stack: stack)
@@ -93,6 +94,7 @@ final class SettingsWindowController: NSWindowController {
             minAnalysisInterval: field("minAnalysisInterval"),
             alertCooldown: field("alertCooldown"),
             environment: field("environment"),
+            contextDir: field("contextDir"),
             intent: field("intent"),
             expectedAction: field("expectedAction"),
             protectedDomain: field("protectedDomain")

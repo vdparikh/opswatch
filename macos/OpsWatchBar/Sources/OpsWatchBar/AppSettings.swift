@@ -10,6 +10,7 @@ struct AppSettings {
     var minAnalysisInterval: String
     var alertCooldown: String
     var environment: String
+    var contextDir: String
     var intent: String
     var expectedAction: String
     var protectedDomain: String
@@ -17,13 +18,14 @@ struct AppSettings {
     static let defaults = AppSettings(
         root: "/Users/vishal/go/src/github.com/vdplabs/opswatch",
         visionProvider: "ollama",
-        model: "llama3.2-vision",
+        model: "qwen2.5vl",
         interval: "10s",
         maxImageDimension: "1000",
         ollamaNumPredict: "128",
         minAnalysisInterval: "30s",
         alertCooldown: "2m",
         environment: "prod",
+        contextDir: "\(NSHomeDirectory())/.opswatch/context",
         intent: "",
         expectedAction: "",
         protectedDomain: ""
@@ -42,6 +44,7 @@ struct AppSettings {
             minAnalysisInterval: value("minAnalysisInterval", env: "OPSWATCH_MIN_ANALYSIS_INTERVAL", fallback: fallback.minAnalysisInterval, defaultsStore: defaultsStore),
             alertCooldown: value("alertCooldown", env: "OPSWATCH_ALERT_COOLDOWN", fallback: fallback.alertCooldown, defaultsStore: defaultsStore),
             environment: value("environment", env: "OPSWATCH_ENVIRONMENT", fallback: fallback.environment, defaultsStore: defaultsStore),
+            contextDir: value("contextDir", env: "OPSWATCH_CONTEXT_DIR", fallback: fallback.contextDir, defaultsStore: defaultsStore),
             intent: value("intent", env: "OPSWATCH_INTENT", fallback: fallback.intent, defaultsStore: defaultsStore),
             expectedAction: value("expectedAction", env: "OPSWATCH_EXPECTED_ACTION", fallback: fallback.expectedAction, defaultsStore: defaultsStore),
             protectedDomain: value("protectedDomain", env: "OPSWATCH_PROTECTED_DOMAIN", fallback: fallback.protectedDomain, defaultsStore: defaultsStore)
@@ -59,6 +62,7 @@ struct AppSettings {
         defaultsStore.set(minAnalysisInterval, forKey: "minAnalysisInterval")
         defaultsStore.set(alertCooldown, forKey: "alertCooldown")
         defaultsStore.set(environment, forKey: "environment")
+        defaultsStore.set(contextDir, forKey: "contextDir")
         defaultsStore.set(intent, forKey: "intent")
         defaultsStore.set(expectedAction, forKey: "expectedAction")
         defaultsStore.set(protectedDomain, forKey: "protectedDomain")
